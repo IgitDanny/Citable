@@ -1369,13 +1369,224 @@ gdocs.refreshDocs = function() {
   util.scheduleRequest();
 };
 
+/////////////////////////////////////////////////////
+
+      /**
+       * Check if the current user has authorized the application.
+       */
+      function checkAuth() {
+        gapi.auth.authorize(
+            {'client_id': CLIENT_ID, 'scope': SCOPES, 'immediate': true},
+            handleAuthResult);
+      }
+
+      /**
+       * Called when authorization server replies.
+       *
+       * @param {Object} authResult Authorization result.
+       */
+      function handleAuthResult(authResult) {
+        console.log(authResult);
+        /*var authButton = document.getElementById('authorizeButton');
+        var filePicker = document.getElementById('filePicker');
+        authButton.style.display = 'none';
+        filePicker.style.display = 'none';
+        if (authResult && !authResult.error) {
+          // Access token has been successfully retrieved, requests can be sent to the API.
+          filePicker.style.display = 'block';
+          filePicker.onchange = uploadFile;
+        } else {
+          // No access token could be retrieved, show the button to start the authorization flow.
+          authButton.style.display = 'block';
+          authButton.onclick = function() {
+              gapi.auth.authorize(
+                  {'client_id': CLIENT_ID, 'scope': SCOPES, 'immediate': false},
+                  handleAuthResult);
+          };
+        }*/
+      }
+
+function logger(resp){
+	console.log(resp);
+}
+function auth(callback) {
+	
+	//gapi.client.setApiKey('AIzaSyAWw_FR8PovrAx8d4aJo2rJb3IY0Zfq91A');
+	/*var config = {
+		'client_id': '1034066493115-63ktpb72dijlg29fsr4d4q40uotkd1a1.apps.googleusercontent.com', //client ID
+		'scope': 'https://www.googleapis.com/auth/drive'
+	};*/
+	var params = { 'immediate': false };
+	gapi.auth.authorize(params, function(accessToken) {
+		if (!accessToken) {
+	      var error = document.createElement("p");
+	      error.textContent = 'Unauthorized';
+	      document.querySelector("body").appendChild(error);
+	    } else {
+	      console.log('login complete');
+		  console.log(gapi.auth.getToken());
+	      if(callback){callback();}
+	    }
+	});
+}
+
+makeRequest = function(accessToken, method, url, callback, opt_data, opt_headers) {
+	var data = opt_data || null;
+	var headers = opt_headers || {};
+
+	var xhr = new XMLHttpRequest();
+	xhr.open(method, url, true);
+
+	// Include common headers (auth and version) and add rest. 
+	xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
+	for (var key in headers) {
+	xhr.setRequestHeader(key, headers[key]);
+	}
+
+	xhr.onload = function(e) {
+		//this.lastResponse = this.response;
+		//callback(this.lastResponse, this);
+		console.log(e.srcElement.response);
+	}.bind(this);
+	xhr.onerror = function(e) {
+		console.log(this, this.status, this.response,
+        this.getAllResponseHeaders());
+	};
+	xhr.send(data);
+	console.log(xhr);
+};
+
+/**
+ * Prompts the user for authorization and then proceeds to 
+ */
+/*function authorize(params, callback) {
+  gapi.auth.authorize(params, function(accessToken) {
+    if (!accessToken) {
+      var error = document.createElement("p");
+      error.textContent = 'Unauthorized';
+      document.querySelector("body").appendChild(error);
+    } else {
+      callback();
+    }
+  });
+}*/
+
+/**
+       * Start the file upload.
+       *
+       * @param {Object} evt Arguments from the file selector.
+       */
+      function loadDriveAPI() {
+        //gapi.client.setApiKey('YOUR API KEY');
+        gapi.client.load('drive', 'v2', function() {
+          auth();
+
+          //var file = evt.target.files[0];
+          var fileId = '1c0MTew5ivtnWhfSqXHUONyD83BG3xLmN1HAS4q-fVU0';
+          key = 'Citable';
+          value = true;
+          visibility = 'PUBLIC';
+          //retrieveProperties(fileId, logger);
+          //insertProperty(fileId, key, value, visibility);
+          //getProperty(fileId, key, visibility)
+          //retrieveAllFiles(logger);
+          
+        });
+      }
+
+/**
+ * Retrieve a list of File resources.
+ *
+ * @param {Function} callback Function to call when the request is complete.
+ */
+function retrieveAllFiles(callback) {
+  var retrievePageOfFiles = function(request, result) {
+    request.execute(function(resp) {
+      result = result.concat(resp.items);
+      var nextPageToken = resp.nextPageToken;
+      if (nextPageToken) {
+        request = gapi.client.drive.files.list({
+          'pageToken': nextPageToken
+        });
+        retrievePageOfFiles(request, result);
+      } else {
+        callback(result);
+      }
+    });
+  }
+  var initialRequest = gapi.client.drive.files.list();
+  retrievePageOfFiles(initialRequest, []);
+}
+      /**
+ * Retrieve a list of custom file properties.
+ *
+ * @param {String} fileId ID of the file to retrieve properties for.
+ * @param {Function} callback Function to call when the request is complete.
+ */
+function retrieveProperties(fileId, callback) {
+  var request = gapi.client.drive.properties.list({
+    'fileId': fileId
+  });
+  request.execute(function(resp) {
+    callback(resp.items);
+  });
+}
+/**
+ * Print information about the specified custom property.
+ *
+ * @param {String} fileId ID of the file to print property for.
+ * @param {String} key ID of the property to print.
+ * @param {String} visibility The type of property ('PUBLIC' or 'PRIVATE').
+ */
+function getProperty(fileId, key, visibility) {
+  var request = gapi.client.drive.properties.get({
+    'fileId': fileId,
+    'propertyKey': key,
+    'visibility': visibility
+  });
+  request.execute(function(resp) {
+    console.log('Key: ' + resp.key);
+    console.log('Value: ' + resp.value);
+    console.log('Visibility: ' + resp.visibility);
+  });
+}
+/**
+ * Insert a new custom file property.
+ *
+ * @param {String} fileId ID of the file to insert property for.
+ * @param {String} key ID of the property.
+ * @param {String} value Property value.
+ * @param {String} visibility 'PUBLIC' to make the property visible by all apps,
+ *     or 'PRIVATE' to make it only available to the app that created it.
+ */
+function insertProperty(fileId, key, value, visibility) {
+  var body = {
+    'key': key,
+    'value': value,
+    'visibility': visibility
+  }
+  var request = gapi.client.drive.properties.insert({
+    'fileId': fileId,
+    'resource': body
+  });
+  request.execute(function(resp) { });
+}
 
 /////////////////////////////////////
 //Important for the doclist features.
 ////////////////////////////////////
-bgPage.oauth.authorize(function() {
+//Old Auth Flow
+/*bgPage.oauth.authorize(function() {
   util.scheduleRequest();  
-});
+});*/
+//New Auth Flow
+	chrome.identity.getAuthToken({ 'interactive': true }, function(token) {
+		// Use the token.
+		console.log('Success!',token);
+		makeRequest(token, 'GET', 'https://www.googleapis.com/drive/v2/files', function(e){console.log(e);});
+		//, JSON.stringify({'alt':'json', 'maxResults':'10', 'key': 'AIzaSyAWw_FR8PovrAx8d4aJo2rJb3IY0Zfq91A'})
+	});
+//auth();
 
 
   // Call the getPageInfo function in the background page, passing in our onPageInfo function as the callback.
