@@ -1277,7 +1277,7 @@ console.log('gdocs.getFolder');
 };
 
 /////////////////////////////////////////////////////////////
-
+//Called if no folder was present. Initialize the folder.
 gdocs.updateFolders = function(callback) {
 	console.log('gdocs.updateFolders');
 	
@@ -1286,6 +1286,8 @@ gdocs.updateFolders = function(callback) {
 		gdocs.getFolder(1, getFolderCallback); //Check for the old folder.
 	}
 	
+	//////////////////////////////////////////
+	//The next three callbacks are for handling the upgrade process. This should no longer be necessary. All installations should be upgraded.
 	var getFolderCallback = function(id) {
 		console.log('gdocs.updateFolders getFolderCallback', id);
 		if( id == null ){
@@ -1314,6 +1316,7 @@ gdocs.updateFolders = function(callback) {
 gdocs.start = function() {
 	console.log('gdocs.start');
 	
+	//Check for folder.
 	var getFolderCallback = function(id) {
 		console.log('gdocs.start getFolderCallback ', id);
 		if ( id == null ) {
@@ -1327,6 +1330,7 @@ gdocs.start = function() {
 		}
 	}
 	
+	//Callback if folder was present.
 	var getDocumentListCallback = function(e) {
 		console.log('gdocs.start getDocumentListCallback ', e);
 		
@@ -1334,6 +1338,7 @@ gdocs.start = function() {
 		//End of Start.
 	}
 	
+	//Callback if folder was not present.
 	var updateFoldersCallback = function() {
 		console.log('gdocs.start updateFoldersCallback');
 		gdocs.getDocumentList(); //Get the first folder, no callback.
